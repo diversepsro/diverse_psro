@@ -41,7 +41,7 @@ You can now run Non-transitive Mixture Model by executing
 python3 non_mixture_model.py
 ```
 
-Running colonel Blotto requires to install [open_spiel](https://github.com/deepmind/open_spiel/tree/549e48010a81c023902a39c41319ed08769d3f26) in addition, then running
+Running colonel Blotto requires to install [open_spiel @ 549e48010a](https://github.com/deepmind/open_spiel/tree/549e48010a81c023902a39c41319ed08769d3f26) in addition, then running
 
 ```shell
 python3 blotto/blotto.py
