@@ -33,6 +33,13 @@ os.mkdir(PATH_RESULTS)
 
 device = 'cpu'
 
+FILE_TRAJ = {
+    'rectified': 'rectified.p',
+    'psro': 'psro.p',
+    'p-psro': 'p_psro.p',
+    'dpp': 'dpp.p',
+             }
+
 
 class MyGaussianPDF(nn.Module):
     def __init__(self, mu):
@@ -60,39 +67,88 @@ class TorchPop:
         self.pop_size = num_learners + 1
 
         mus = np.array([[2.8722, -0.025255],
-                        [-1.4580, -2.4747],
-                        [-1.4142, 2.5]])
+                        [1.8105, 2.2298],
+                        [1.8105, -2.2298],
+                        [-0.61450, 2.8058],
+                        [-0.61450, -2.8058],
+                        [-2.5768, 1.2690],
+                        [-2.5768, -1.2690]]
+                       )
         mus = torch.from_numpy(mus).float().to(device)
         self.mus = mus
 
-        self.game = torch.from_numpy(np.array([[0., 1., -1.],
-                                               [-1, 0., 1.],
-                                               [1., -1., 0.]])).float().to(device)
+        self.game = torch.from_numpy(np.array([
+                                               [0., 1., 1., 1, -1, -1, -1],
+                                               [-1., 0., 1., 1., 1., -1., -1.],
+                                               [-1., -1., 0., 1., 1., 1., -1],
+                                               [-1., -1., -1., 0, 1., 1., 1.],
+                                               [1., -1., -1., -1., 0., 1., 1.],
+                                               [1., 1., -1., -1, -1, 0., 1.],
+                                               [1., 1., 1., -1., -1., -1., 0.]
+                                               ])).float().to(device)
 
         self.pop = [GMMAgent(mus) for _ in range(self.pop_size)]
         self.pop_hist = [[self.pop[i].x.detach().cpu().clone().numpy()] for i in range(self.pop_size)]
 
-    def visualise_pop(self, br=None):
+    def visualise_pop(self, br=None, ax=None, color=None):
+
+        def multivariate_gaussian(pos, mu, Sigma):
+            """Return the multivariate Gaussian distribution on array pos."""
+
+            n = mu.shape[0]
+            Sigma_det = np.linalg.det(Sigma)
+            Sigma_inv = np.linalg.inv(Sigma)
+            N = np.sqrt((2 * np.pi) ** n * Sigma_det)
+            # This einsum call calculates (x-mu)T.Sigma-1.(x-mu) in a vectorized
+            # way across all the input variables.
+            fac = np.einsum('...k,kl,...l->...', pos - mu, Sigma_inv, pos - mu)
+            return np.exp(-fac / 2) / N
+
         agents = [agent.x.detach().cpu().numpy() for agent in self.pop]
         agents = list(zip(*agents))
 
         # Colors
-        colors = cm.rainbow(np.linspace(0, 1, len(agents[0])))
-        fig = plt.figure(figsize=(6, 6))
-        plt.scatter(agents[0], agents[1], alpha=0.8, marker='.', color=colors)
+        if color is None:
+            colors = cm.rainbow(np.linspace(0, 1, len(agents[0])))
+        else:
+            colors = [color]*len(agents[0])
+
+        # fig = plt.figure(figsize=(6, 6))
+        ax.scatter(agents[0], agents[1], alpha=1., marker='.', color=colors, s=8*plt.rcParams['lines.markersize'] ** 2)
         if br is not None:
-            plt.scatter(br[0], br[1], marker='.', c='k')
+            ax.scatter(br[0], br[1], marker='.', c='k')
         for i, hist in enumerate(self.pop_hist):
             if hist:
                 hist = list(zip(*hist))
-                plt.plot(hist[0], hist[1], alpha=0.4, color=colors[i])
+                ax.plot(hist[0], hist[1], alpha=0.8, color=colors[i], linewidth=4)
 
-        for i in range(3):
-            plt.scatter(self.mus[i, 0].item(), self.mus[i, 1].item(), marker='x', c='k')
-        plt.xlim([-4.5, 4.5])
-        plt.ylim([-4.5, 4.5])
+        # ax = plt.gca()
+        for i in range(7):
+            ax.scatter(self.mus[i, 0].item(), self.mus[i, 1].item(), marker='x', c='k')
+            for j in range(4):
+                delta = 0.025
+                x = np.arange(-4.5, 4.5, delta)
+                y = np.arange(-4.5, 4.5, delta)
+                X, Y = np.meshgrid(x, y)
+                pos = np.empty(X.shape + (2,))
+                pos[:, :, 0] = X
+                pos[:, :, 1] = Y
+                Z = multivariate_gaussian(pos, self.mus[i,:].numpy(), 0.54 * np.eye(2))
+                levels = 10
+                # levels = np.logspace(0.01, 1, 10, endpoint=True)
+                CS = ax.contour(X, Y, Z, levels, colors='k', linewidths=0.5, alpha=0.2)
+        ax.axes.xaxis.set_ticks([])
+        ax.axes.yaxis.set_ticks([])
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+                # ax.clabel(CS, fontsize=9, inline=1)
+                # circle = plt.Circle((0, 0), 0.2, color='r')
+                # ax.add_artist(circle)
+        ax.set_xlim([-4.5, 4.5])
+        ax.set_ylim([-4.5, 4.5])
 
-        return fig
 
     def get_payoff(self, agent1, agent2):
         p = agent1()
@@ -115,7 +171,7 @@ class TorchPop:
 
     def get_br_to_strat(self, metanash, lr, nb_iters=20):
         br = GMMAgent(self.mus)
-        br.x = nn.Parameter(0.1*torch.rand(2, dtype=torch.float), requires_grad=False)
+        br.x = nn.Parameter(0.1*torch.randn(2, dtype=torch.float), requires_grad=False)
         br.x.requires_grad = True
         optimiser = optim.Adam(br.parameters(), lr=lr)
         for _ in range(nb_iters*10):
@@ -155,15 +211,6 @@ class TorchPop:
         with torch.no_grad():
             exp = self.get_payoff_aggregate(br, metanash, self.pop_size).item()
         return exp
-
-
-def L_numpy(L):
-    L = L.detach().cpu().clone().numpy()
-    evals, _ = la.eigh(L)
-    if not np.all(np.array(evals) >= -1e-8):
-        L = L + 0.01*np.eye(L.shape[0])
-    L += 1e-6
-    return L
 
 
 def gradient_loss_update(torch_pop, k, train_iters=10, lambda_weight=0.1, lr=0.1, dpp=True):
@@ -257,8 +304,8 @@ def psro_gradient(iters=5, num_learners=4, lr=.2, train_iters=10, dpp=True, seed
             print('ITERATION: ', i, ' exp full: {:.4f}'.format(exps[-1]), 'L_CARD: {:.3f}'.format(L_cards[-1]),
                   'lw: {:.3f}'.format(lambda_weight))
 
-
-    fig_handle = torch_pop.visualise_pop(br=None)
+    fig1, axs1 = plt.subplots(1, 1)
+    torch_pop.visualise_pop(br=None, ax=axs1)
 
     if num_learners==1:
         fstr = 'psro'
@@ -266,7 +313,7 @@ def psro_gradient(iters=5, num_learners=4, lr=.2, train_iters=10, dpp=True, seed
         fstr = 'dppLoss_' if dpp else 'origLoss'
     plt.savefig(os.path.join(PATH_RESULTS, 'trajectories_' + fstr + '.pdf'))
 
-    return exps, L_cards
+    return torch_pop, exps, L_cards
 
 
 def gradient_loss_update_rectified(torch_pop, k, weights, train_iters=10, lr=0.1):
@@ -333,10 +380,10 @@ def psro_rectified_gradient(iters=10, eps=1e-2, seed=0, train_iters=10,
         # find policies it wins against, and play against meta Nash weighted mixture of those policies
         for j in range(torch_pop.pop_size):
             if counter > iters * num_pseudo_learners:
-
-                fig_handle = torch_pop.visualise_pop(br=None)
+                fig1, axs1 = plt.subplots(1, 1)
+                torch_pop.visualise_pop(br=None, ax=axs1)
                 plt.savefig(os.path.join(PATH_RESULTS, 'trajectories_rectified.pdf'))
-                return exps, L_cards
+                return torch_pop, exps, L_cards
             # if positive mass, add a new learner to pop and update it with steps, submit if over thresh
             # keep track of counter
             if averages[-1][j] > eps:
@@ -364,11 +411,13 @@ def psro_rectified_gradient(iters=10, eps=1e-2, seed=0, train_iters=10,
                     L_cards.append(L_card)
         torch_pop = copy.deepcopy(new_pop)
 
-    fig_handle = torch_pop.visualise_pop(br=None)
+
+    fig1, axs1 = plt.subplots(1, 1)
+    torch_pop.visualise_pop(br=None, ax=axs1)
     plt.savefig(os.path.join(PATH_RESULTS, 'trajectories_rectified.pdf'))
 
 
-    return exps, L_cards
+    return torch_pop, exps, L_cards
 
 
 #Search over the pure strategies to find the BR to a strategy
@@ -423,31 +472,35 @@ def run_experiments(num_experiments=1, num_threads=20, iters=40,
 
         if rectified:
             print('Rectified')
-            exps, L_cards = psro_rectified_gradient(iters=iters, seed=i, train_iters=train_iters,
+            torch_pop, exps, L_cards = psro_rectified_gradient(iters=iters, seed=i, train_iters=train_iters,
                                     num_pseudo_learners=1, lr=LR)
             rectified_exps.append(exps)
             rectified_cardinality.append(L_cards)
+            pickle.dump({'pop': torch_pop}, open(os.path.join(PATH_RESULTS, FILE_TRAJ['rectified'])+'.p', 'wb'))
 
         if dpp_psro:
             print('Grad DPP')
-            exps, L_cards = psro_gradient(iters=iters, num_learners=num_threads, lr=LR, train_iters=train_iters, seed=i,
+            torch_pop, exps, L_cards = psro_gradient(iters=iters, num_learners=num_threads, lr=LR, train_iters=train_iters, seed=i,
                                           dpp=True)
             dpp_exps.append(exps)
             dpp_cardinality.append(L_cards)
+            pickle.dump({'pop': torch_pop}, open(os.path.join(PATH_RESULTS, FILE_TRAJ['dpp'])+'.p', 'wb'))
 
         if pipeline_psro:
             print('Grad no DPP')
-            exps, L_cards = psro_gradient(iters=iters, num_learners=num_threads, lr=LR, train_iters=train_iters, seed=i,
+            torch_pop, exps, L_cards = psro_gradient(iters=iters, num_learners=num_threads, lr=LR, train_iters=train_iters, seed=i,
                                           dpp=False)
             pipeline_exps.append(exps)
             pipeline_cardinality.append(L_cards)
+            pickle.dump({'pop': torch_pop}, open(os.path.join(PATH_RESULTS, FILE_TRAJ['p-psro'])+'.p', 'wb'))
 
         if psro:
             print('PSRO no DPP')
-            exps, L_cards = psro_gradient(iters=iters, num_learners=1, lr=LR, train_iters=train_iters, seed=i,
+            torch_pop, exps, L_cards = psro_gradient(iters=iters, num_learners=1, lr=LR, train_iters=train_iters, seed=i,
                                           dpp=False)
             psro_exps.append(exps)
             psro_cardinality.append(L_cards)
+            pickle.dump({'pop': torch_pop}, open(os.path.join(PATH_RESULTS, FILE_TRAJ['psro'])+'.p', 'wb'))
 
 
         d = {
@@ -487,11 +540,17 @@ def run_experiments(num_experiments=1, num_threads=20, iters=40,
                     rectified_cardinality[i] = rectified_cardinality[i][:length]
                 plot_error(rectified_cardinality, label='PSRO-rN')
 
-        if pipeline_psro:
+        if psro:
             if j == 0:
                 plot_error(pipeline_exps, label='PSRO')
             elif j == 1:
                 plot_error(pipeline_cardinality, label='PSRO')
+
+        if pipeline_psro:
+            if j == 0:
+                plot_error(pipeline_exps, label='P-PSRO')
+            elif j == 1:
+                plot_error(pipeline_cardinality, label='P-PSRO')
 
         if dpp_psro:
             if j == 0:
@@ -510,6 +569,29 @@ def run_experiments(num_experiments=1, num_threads=20, iters=40,
 
         plt.savefig(os.path.join(PATH_RESULTS, 'figure_'+ str(j) + '.pdf'))
 
+def run_traj():
+
+    titles = {
+        'rectified': 'PSRO-rN',
+        'dpp': 'DPP-PSRO',
+        'p-psro': 'P-PSRO',
+        'psro': 'PSRO',
+    }
+    pops = {}
+    fig1, axs1 = plt.subplots(1, 4, figsize=(5 * 4, 5 * 1), dpi=200)
+    axs1 = axs1.flatten()
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
+    for i, key in enumerate(FILE_TRAJ.keys()):
+        ax = axs1[i]
+        d = pickle.load(open(os.path.join(PATH_RESULTS, FILE_TRAJ[key])+'.p', 'rb'))
+        pops[FILE_TRAJ[key]] = d['pop']
+        pops[FILE_TRAJ[key]].visualise_pop(ax=ax, color=colors[i])
+        ax.set_title(titles[key])
+
+    fig1.tight_layout()
+    fig1.savefig(os.path.join(PATH_RESULTS, 'trajectories.pdf'))
+
+
 if __name__ =="__main__":
 
     run_experiments(num_experiments=10, num_threads=4, iters=50,
@@ -518,6 +600,7 @@ if __name__ =="__main__":
                     rectified=True,
                     psro=True,
                     yscale='none', train_iters=TRAIN_ITERS)
+    run_traj()
 
     plt.show()
 

@@ -1,0 +1,3 @@
+[submodule "dependencies/open_spiel"]
+	path = dependencies/open_spiel
+	url = https://github.com/deepmind/open_spiel/tree/549e48010a81c023902a39c41319ed08769d3f26
