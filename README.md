@@ -12,22 +12,27 @@ population diversity.
 
 ### Performance of Diverse PSRO
 
-> Diverse PSRO is evaluated in three different setting, each of them using a different version of diverse oracle.
+> Diverse PSRO is evaluated in three different settings, each of them using a different version of diverse oracle.
 
 |              Game               |           Oracle          |
 | :-----------------------------: | :-----------------------: |
 |    Random Normal Form Games     |         Diverse BR        |
-|     2D Rock Paper Scissors      |  Diverse gradient ascent  |
-|             Blotto              |     Diverse zero-order    |
+|    Real World Meta-Games        |         Diverse BR        |
+|  Non-transitive mixture model   |  Diverse gradient ascent  |
+|         Colonel Blotto          |     Diverse zero-order    |
 
 
 ## Random Normal Form Games
 
 <img src="results/GoS1000.png" width="500" >
 
-## 2D Rock Paper Scissors
+## Real World Meta-Games
 
-<img src="results/2Drps7.png" width="1000" >
+<img src="results/AlphaStar.png" width="500" >
+
+## Non-transitive mixture model
+
+<img src="results/NTMM.png" width="1000" >
 
 ## Blotto
 
