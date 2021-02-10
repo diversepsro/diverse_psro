@@ -91,11 +91,11 @@ def run_psro(params, experiment=None, phase=None):
     return meta_games, meta_probabilities, exp1, exp2
 
 
-def main(params, num_exps=2, path=None):
+def main(params, num_exps=2, path=None, rectify=False):
 
     # DPP vs PSRO
     params['lambda_weight'] = [0.85, 1.]
-    if params['rectify']:
+    if rectify:
         params['rectify_training'] = [False, True]
     else:
         params['rectify_training'] = [False, False]
@@ -118,44 +118,14 @@ def main(params, num_exps=2, path=None):
                      },
                     open(os.path.join(path, 'data_dpp.p'), 'wb'))
 
-    # PSRO vs PSRO
-    params['lambda_weight'] = [1., 1.]
-    if params['rectify']:
-        params['rectify_training'] = [True, True]
-    else:
-        params['rectify_training'] = [False, False]
-    meta_games_orig = []
-    meta_probabilities_orig = []
-    exp1_orig = []
-    exp2_orig = []
-    for i in range(num_exps):
-        meta_games, meta_probabilities, exp1, exp2 = run_psro(params, experiment=i, phase=1)
-        meta_games_orig.append(meta_games)
-        meta_probabilities_orig.append(meta_probabilities)
-        exp1_orig.append(exp1)
-        exp2_orig.append(exp2)
-
-        pickle.dump({
-                     'meta_games': meta_games_orig,
-                     'meta_probabilities': meta_probabilities_orig,
-                     'exp1': exp1_orig,
-                     'exp2': exp2_orig,
-                     },
-                    open(os.path.join(path, 'data_orig.p'), 'wb'))
-
+    opp = 'Rectified' if rectify else 'PSRO'
     plt.figure()
-    plot_error(exp1_dpp+exp2_dpp, label='dpp VS rectify')
-    plot_error(exp1_orig+exp2_orig, label='rectify VS rectify')
-    plt.savefig(os.path.join(path, 'exp.pdf'))
-    plt.figure()
-    plot_error(exp1_dpp, label='Exp DPP p1')
-    plot_error(exp1_orig, label='Exp rectify p1')
-    plt.savefig(os.path.join(path, 'exp1.pdf'))
-    plt.figure()
-    plot_error(exp2_orig, label='Exp rectify p2')
-    plot_error(exp2_dpp, label='Exp DPP p2')
-    plt.savefig(os.path.join(path, 'exp2.pdf'))
-    plt.figure()
+    plot_error(exp1_dpp, label='DPP Player')
+    plot_error(exp2_dpp, label=opp+' Player')
+    plt.title('Colonel Blotto Game')
+    plt.xlabel('Iterations')
+    plt.ylabel('Player Exploitabilities')
+    plt.savefig(os.path.join(path, 'exploitabilities.pdf'))
 
     plt.show()
 
@@ -201,5 +171,5 @@ if __name__ == "__main__":
 
     num_exps = 10
 
-    main(params, num_exps=num_exps, path=path)
+    main(params, num_exps=num_exps, path=path, rectify=False)
 
