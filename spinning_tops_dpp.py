@@ -309,7 +309,7 @@ def run_experiment(param_seed):
 
     print('Experiment: ', seed + 1)
     np.random.seed(seed)
-    with open("bin/payoffs_data/" + str(args.game_name) + ".pkl", "rb") as fh:
+    with open("payoffs_data/" + str(args.game_name) + ".pkl", "rb") as fh:
         payoffs = pickle.load(fh)
 
     if psro:
