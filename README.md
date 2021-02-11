@@ -32,7 +32,7 @@ python3 random_games_skill.py
 You can now run Real World Meta-Games by executing
 
 ```shell
-python3 sspinning_topss_dpp.py
+python3 spinning_tops_dpp.py
 ```
 
 You can now run Non-transitive Mixture Model by executing
