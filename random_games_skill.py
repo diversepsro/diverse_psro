@@ -15,7 +15,7 @@ np.set_printoptions(precision=3)
 
 np.random.seed(0)
 
-parser = argparse.ArgumentParser(description='Random GAmes of Skill form DPP')
+parser = argparse.ArgumentParser(description='Random Games of Skill form DPP')
 parser.add_argument('--dim', type=int, default=1000)
 parser.add_argument('--nb_iters', type=int, default=200)
 
@@ -323,7 +323,7 @@ def run_experiment(param_seed):
         pipeline_psro_exps = exps
         pipeline_psro_cardinality = cards
     if dpp_psro:
-        print('Pipeline DPP')
+        print('DPP')
         pop, exps, cards = psro_steps(iters=iters, num_learners=num_threads, seed=seed+1,
                                                               improvement_pct_threshold=thresh, lr=lr,
                                                               payoffs=payoffs, loss_func='dpp')
