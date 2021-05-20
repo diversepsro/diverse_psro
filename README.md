@@ -41,12 +41,6 @@ You can now run Non-transitive Mixture Model by executing
 python3 non_mixture_model.py
 ```
 
-Running colonel Blotto requires to install [open_spiel @ 549e48010a](https://github.com/deepmind/open_spiel/tree/549e48010a81c023902a39c41319ed08769d3f26) in addition, then running
-
-```shell
-python3 blotto/blotto.py
-```
-
 
 ### Performance of Diverse PSRO
 
@@ -57,7 +51,6 @@ Diverse PSRO is evaluated in three different settings, each of them using a diff
 |     Random Games of Skill       |         Diverse BR        |
 |     Real World Meta-Games       |         Diverse BR        |
 |  Non-transitive mixture model   |  Diverse gradient ascent  |
-|         Colonel Blotto          |     Diverse zero-order    |
 
 
 ## Random Games of Skill
@@ -71,7 +64,3 @@ Diverse PSRO is evaluated in three different settings, each of them using a diff
 ## Non-transitive mixture model
 
 <img src="results/NTMM.png" width="1000" >
-
-## Blotto
-
-<img src="results/blotto.png" width="500" >

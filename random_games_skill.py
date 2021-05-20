@@ -91,7 +91,8 @@ def joint_loss(pop, payoffs, meta_nash, k, lambda_weight, lr):
         pop_tmp = np.vstack((pop[:k], pop_k))
         M = pop_tmp @ payoffs @ pop_tmp.T
         metanash_tmp, _ = fictitious_play(payoffs=M, iters=1000)
-        L = np.diag(metanash_tmp[-1]) @ M @ M.T @ np.diag(metanash_tmp[-1])
+        # L = np.diag(metanash_tmp[-1]) @ M @ M.T @ np.diag(metanash_tmp[-1])
+        L = M @ M.T
         l_card = np.trace(np.eye(L.shape[0]) - np.linalg.inv(L + np.eye(L.shape[0])))
 
         cards.append(l_card)
@@ -307,6 +308,7 @@ def run_experiment(param_seed):
     W = np.random.randn(dim, dim)
     S = np.random.randn(dim, 1)
     payoffs = 0.5 * (W - W.T) + S - S.T
+    payoffs /= np.abs(payoffs).max() 
 
     if psro:
         print('PSRO')
